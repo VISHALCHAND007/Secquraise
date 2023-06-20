@@ -1,0 +1,249 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/black"
+    android:padding="10dp"
+    tools:context=".activity.MainActivity">
+
+    <ScrollView
+        android:id="@+id/scrollView"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:fontFamily="@font/aclonica"
+                android:gravity="center_horizontal"
+                android:text="@string/secquraise"
+                android:textColor="@color/colorAccent"
+                android:textSize="@dimen/title1"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/dateTimeTv"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/margin10"
+                android:gravity="center_horizontal"
+                android:textColor="@color/white"
+                android:textSize="@dimen/title2" />
+
+            <ImageView
+                android:id="@+id/imageView"
+                android:layout_width="200dp"
+                android:layout_height="180dp"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="@dimen/margin10"
+                android:contentDescription="@null"
+                android:src="@drawable/image" />
+
+            <TableLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/margin10">
+
+                <TableRow
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:weightSum="1">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/margin10"
+                        android:layout_weight=".9"
+                        android:gravity="start"
+                        android:text="@string/capture_count"
+                        android:textColor="@color/white"
+                        android:textSize="@dimen/title2" />
+
+                    <TextView
+                        android:id="@+id/captureTv"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/margin10"
+                        android:layout_weight=".1"
+                        android:textColor="@color/green"
+                        android:textSize="@dimen/title2" />
+
+                </TableRow>
+
+                <TableRow
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:weightSum="1">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/margin10"
+                        android:layout_weight=".9"
+                        android:gravity="start"
+                        android:text="@string/frequency_min"
+                        android:textColor="@color/white"
+                        android:textSize="@dimen/title2" />
+
+                    <EditText
+                        android:id="@+id/frequencyEt"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/margin10"
+                        android:autofillHints="null"
+                        android:background="@null"
+                        android:layout_weight=".1"
+                        android:inputType="number"
+                        android:textColor="@color/green"
+                        android:textSize="@dimen/title2"
+                        tools:ignore="LabelFor" />
+
+                </TableRow>
+
+                <TableRow
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:weightSum="1">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/margin10"
+                        android:layout_weight=".9"
+                        android:gravity="start"
+                        android:text="@string/connectivity"
+                        android:textColor="@color/white"
+                        android:textSize="@dimen/title2" />
+
+                    <TextView
+                        android:id="@+id/connectivityTv"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/margin10"
+                        android:layout_weight=".1"
+                        android:textColor="@color/green"
+                        android:textSize="@dimen/title2" />
+
+                </TableRow>
+
+                <TableRow
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:weightSum="1">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/margin10"
+                        android:layout_weight=".9"
+                        android:gravity="start"
+                        android:text="@string/battery_ncharging"
+                        android:textColor="@color/white"
+                        android:textSize="@dimen/title2" />
+
+                    <TextView
+                        android:id="@+id/batteryChargingTv"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/margin10"
+                        android:layout_weight=".1"
+                        android:textColor="@color/green"
+                        android:textSize="@dimen/title2" />
+
+                </TableRow>
+
+                <TableRow
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:weightSum="1">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/margin10"
+                        android:layout_weight=".9"
+                        android:gravity="start"
+                        android:text="@string/battery_charge"
+                        android:textColor="@color/white"
+                        android:textSize="@dimen/title2" />
+
+                    <TextView
+                        android:id="@+id/chargePercentageTv"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/margin10"
+                        android:layout_weight=".1"
+                        android:textColor="@color/green"
+                        android:textSize="@dimen/title2" />
+
+                </TableRow>
+
+                <TableRow
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:weightSum="1">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/margin10"
+                        android:layout_weight=".9"
+                        android:gravity="start"
+                        android:text="@string/location"
+                        android:textColor="@color/white"
+                        android:textSize="@dimen/title2" />
+
+                    <TextView
+                        android:id="@+id/locationTv"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/margin10"
+                        android:layout_weight=".1"
+                        android:textColor="@color/green"
+                        android:textSize="@dimen/title2" />
+
+                </TableRow>
+
+            </TableLayout>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/manualRefreshBtn"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="@dimen/margin10"
+                android:layout_marginTop="@dimen/margin10"
+                android:backgroundTint="@color/colorAccent"
+                android:paddingVertical="@dimen/margin10"
+                android:text="@string/manual_data_refresh"
+                android:textColor="@color/white"
+                android:textSize="@dimen/title2"
+                app:cornerRadius="10dp" />
+
+
+        </LinearLayout>
+    </ScrollView>
+
+    <ProgressBar
+        android:id="@+id/progressBar"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
+        android:visibility="gone"
+        android:indeterminateTint="@color/colorAccent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"/>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

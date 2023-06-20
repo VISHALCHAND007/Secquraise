@@ -1,0 +1,14 @@
+<resources>
+    <string name="app_name">SecqurAlse Assignment</string>
+    <string name="secquraise">SECQUR<font color="@color/red">AI</font>SE</string>
+    <string name="capture_count">Capture Count</string>
+    <string name="_11">11</string>
+    <string name="frequency_min">Frequency (min)</string>
+    <string name="connectivity">Connectivity</string>
+    <string name="battery_charge">Battery Charge</string>
+    <string name="battery_ncharging">Battery \nCharging</string>
+    <string name="location">Location</string>
+    <string name="on">ON</string>
+    <string name="off">OFF</string>
+    <string name="manual_data_refresh">Manual Data Refresh</string>
+</resources>
