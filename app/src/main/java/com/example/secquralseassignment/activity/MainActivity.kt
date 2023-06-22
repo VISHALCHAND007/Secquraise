@@ -8,6 +8,7 @@ import android.os.Bundle
 import android.os.Environment
 import android.os.Handler
 import android.os.Looper
+import android.provider.Settings
 import android.text.Editable
 import android.text.TextWatcher
 import android.util.Log
@@ -19,6 +20,9 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.FileProvider
 import com.bumptech.glide.Glide
 import com.example.secquralseassignment.R
+import com.example.secquralseassignment.database.DataDAO
+import com.example.secquralseassignment.database.DataEntity
+import com.example.secquralseassignment.database.Database
 import com.example.secquralseassignment.databinding.ActivityMainBinding
 import com.example.secquralseassignment.model.DataModel
 import com.example.secquralseassignment.utils.CheckBattery
@@ -49,6 +53,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var mCalendar: Calendar
     private lateinit var file: File
     private var isPermissionGranted = false
+    private lateinit var dao: DataDAO
 
     //local variables
     private var mTimestamp: String = ""
@@ -82,6 +87,7 @@ class MainActivity : AppCompatActivity() {
         mFirebaseDatabaseReference = mFirebaseDatabase.reference.child("my_database")
         mFirebaseStorageReference = mFirebaseStorage.reference.child("photos")
         mCalendar = Calendar.getInstance()
+        dao = Database.getDatabaseInstance(this@MainActivity).dataDao()
     }
 
     private fun checkPermission() {
@@ -155,10 +161,35 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    @SuppressLint("SimpleDateFormat")
     private fun saveFetchedData(frequency: Int) {
         val time: Long = (frequency * 60 * 1000).toLong()
 
+        //checking connectivity on saving with respect to that
+        if(CheckConnection().checkConnectivity(this@MainActivity)) {
+            saveOnline(time)
+        } else {
+            //saving to room db
+            /*
+            1. Creating entity
+            2. Saving it in local db
+            */
+             val entity = DataEntity(
+                 photoUri.toString(),
+                 mTimestamp,
+                 mCaptureCount,
+                 mFrequency,
+                 mConnectivity,
+                 mBatteryCharging,
+                 mChargePercentage,
+                 mLocationCoordinates
+             )
+            dao.insert(entity)
+            fetchAllData()
+        }
+    }
+
+    @SuppressLint("SimpleDateFormat")
+    private fun saveOnline(time: Long) {
         Handler(Looper.myLooper()!!).postDelayed({
             val fileName = SimpleDateFormat("yyyyMMdd_HHmmss").format(mCalendar.time) + ".jpg"
             //start loading
@@ -254,7 +285,9 @@ class MainActivity : AppCompatActivity() {
             if (it) {
                 getPhoto()
             } else {
-                takePermission()
+                LocationHelper().showToast("Allow Camera Access", this@MainActivity)
+                val intent = Intent(Settings.ACTION_APPLICATION_SETTINGS)
+                startActivity(intent)
             }
         }
 
