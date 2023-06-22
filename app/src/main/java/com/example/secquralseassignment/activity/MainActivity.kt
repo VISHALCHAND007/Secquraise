@@ -1,6 +1,7 @@
 package com.example.secquralseassignment.activity
 
 import android.annotation.SuppressLint
+import android.content.DialogInterface
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -14,11 +15,11 @@ import android.text.TextWatcher
 import android.util.Log
 import android.view.View
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.app.ActivityCompat
 import androidx.core.content.FileProvider
-import com.bumptech.glide.Glide
 import com.example.secquralseassignment.R
 import com.example.secquralseassignment.database.DataDAO
 import com.example.secquralseassignment.database.DataEntity
@@ -52,7 +53,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var photoUri: Uri
     private lateinit var mCalendar: Calendar
     private lateinit var file: File
-    private var isPermissionGranted = false
+    private lateinit var dataModel: DataModel
     private lateinit var dao: DataDAO
 
     //local variables
@@ -77,7 +78,28 @@ class MainActivity : AppCompatActivity() {
         initTasks()
         checkPermission()
         initListeners()
-        fetchAllData()
+        saveOfflineData()
+    }
+
+    private fun saveOfflineData() {
+        val mList = dao.getAllData()
+        if (CheckConnection().checkConnectivity(this@MainActivity) && mList.isNotEmpty()) {
+            locationHelper.showToast("Sync in progress...", this@MainActivity)
+            for (i in mList.indices) {
+                photoUri = Uri.parse(mList[i].mPhoto)
+                Log.e("here==", photoUri.toString())
+                mTimestamp = mList[i].mTimeStamp
+                mCaptureCount = mList[i].mCaptureCount
+                mFrequency = mList[i].mFrequency
+                mConnectivity = mList[i].mConnectivity
+                mBatteryCharging = mList[i].mBatteryCharging
+                mChargePercentage = mList[i].mChargePercentage
+                mLocationCoordinates = mList[i].mLocationCoordinates
+                saveOnline(0)
+            }
+        } else {
+            fetchAllData()
+        }
     }
 
     private fun initElements() {
@@ -99,6 +121,7 @@ class MainActivity : AppCompatActivity() {
     private fun initTasks() {
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
         binding.scrollView.isHorizontalScrollBarEnabled = false
+
     }
 
     private fun initListeners() {
@@ -134,7 +157,8 @@ class MainActivity : AppCompatActivity() {
             }
 
             override fun afterTextChanged(s: Editable?) {
-                saveFetchedData(s.toString().toInt())
+                if (s.toString().isNotEmpty())
+                    saveFetchedData(s.toString().toInt())
             }
         })
     }
@@ -142,8 +166,8 @@ class MainActivity : AppCompatActivity() {
     private fun fetchAllData() {
         takePermission()
         saveTimeStamp()
-        getConnectivity()
         getChargingStatus()
+        getConnectivity()
         getBatteryChargePercentage()
         getUserLocation()
         updateData()
@@ -152,20 +176,18 @@ class MainActivity : AppCompatActivity() {
 
     @SuppressLint("SetTextI18n")
     private fun updateData() {
+        mCaptureCount++
         //setting value
         binding.frequencyEt.setText("15")
         binding.captureTv.text = mCaptureCount.toString()
 
-        if (::photoUri.isInitialized) {
-            Glide.with(this@MainActivity).load(photoUri).into(binding.imageView)
-        }
     }
 
     private fun saveFetchedData(frequency: Int) {
         val time: Long = (frequency * 60 * 1000).toLong()
 
         //checking connectivity on saving with respect to that
-        if(CheckConnection().checkConnectivity(this@MainActivity)) {
+        if (CheckConnection().checkConnectivity(this@MainActivity)) {
             saveOnline(time)
         } else {
             //saving to room db
@@ -173,18 +195,20 @@ class MainActivity : AppCompatActivity() {
             1. Creating entity
             2. Saving it in local db
             */
-             val entity = DataEntity(
-                 photoUri.toString(),
-                 mTimestamp,
-                 mCaptureCount,
-                 mFrequency,
-                 mConnectivity,
-                 mBatteryCharging,
-                 mChargePercentage,
-                 mLocationCoordinates
-             )
-            dao.insert(entity)
-            fetchAllData()
+            Handler(Looper.myLooper()!!).postDelayed({
+                val entity = DataEntity(
+                    photoUri.toString(),
+                    mTimestamp,
+                    mCaptureCount,
+                    mFrequency,
+                    mConnectivity,
+                    mBatteryCharging,
+                    mChargePercentage,
+                    mLocationCoordinates
+                )
+                dao.insert(entity)
+                fetchAllData()
+            }, time)
         }
     }
 
@@ -198,7 +222,7 @@ class MainActivity : AppCompatActivity() {
             mFirebaseStorageReference.child(fileName).putFile(photoUri)
                 .addOnSuccessListener {
                     val imageUrl = it.uploadSessionUri
-                    val dataModel =
+                    dataModel =
                         DataModel(
                             imageUrl.toString(),
                             mTimestamp,
@@ -216,7 +240,9 @@ class MainActivity : AppCompatActivity() {
                     }
                     binding.progressBar.visibility = View.GONE
                     binding.scrollView.visibility = View.VISIBLE
-                    deleteAndFetchAgain()
+                    //delete data from room and remove the file from android storage
+                    dao.delete(photoUri.toString())
+                    fetchAllData()
                 }
                 .addOnFailureListener { e ->
                     Log.e("saveFetchedData", "Error uploading photo: ${e.message}")
@@ -224,32 +250,20 @@ class MainActivity : AppCompatActivity() {
         }, time)
     }
 
-    private fun deleteAndFetchAgain() {
-        if (file.exists()) {
-            file.delete()
-        }
-        binding.imageView.setImageDrawable(null)
-        binding.imageView.invalidate()
-        fetchAllData()
-    }
-
     private fun getPhoto() {
-        mCaptureCount++
+//        mCaptureCount++
         val storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES)
-        file = File(storageDir, "${mCalendar.time}.jpg")
+        val mFile = File(storageDir, "photo.${mCalendar.time.time}.png")
+        file = mFile
         photoUri =
-            FileProvider.getUriForFile(this, "com.example.secquralseassignment.fileprovider", file)
-        applicationContext.grantUriPermission(
-            "com.example.secquralseassignment",
-            photoUri,
-            Intent.FLAG_GRANT_WRITE_URI_PERMISSION or Intent.FLAG_GRANT_READ_URI_PERMISSION
-        )
+            FileProvider.getUriForFile(this, "com.example.secquralseassignment.fileprovider", mFile)
         launcher.launch(photoUri)
     }
 
     private val launcher = registerForActivityResult(ActivityResultContracts.TakePicture()) {
         if (it) {
-            Glide.with(this@MainActivity).load(photoUri).into(binding.imageView)
+            binding.imageView.setImageURI(null)
+            binding.imageView.setImageURI(photoUri)
         }
     }
 
@@ -275,7 +289,6 @@ class MainActivity : AppCompatActivity() {
         ) {
             permissionLauncher.launch(android.Manifest.permission.CAMERA)
         } else {
-            isPermissionGranted = true
             getPhoto()
         }
     }
@@ -286,7 +299,7 @@ class MainActivity : AppCompatActivity() {
                 getPhoto()
             } else {
                 LocationHelper().showToast("Allow Camera Access", this@MainActivity)
-                val intent = Intent(Settings.ACTION_APPLICATION_SETTINGS)
+                val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
                 startActivity(intent)
             }
         }
@@ -354,5 +367,25 @@ class MainActivity : AppCompatActivity() {
                 locationHelper.requestPermission(this@MainActivity)
             }
         }
+    }
+
+    @Deprecated("Deprecated in Java")
+    override fun onBackPressed() {
+        val alertDialog = AlertDialog.Builder(this@MainActivity)
+        alertDialog.setTitle("Do you want to exit?")
+        alertDialog.setPositiveButton(
+            "Yes"
+        ) { _: DialogInterface?, _: Int ->
+            // When the user click yes button then app will close
+            finishAffinity()
+        }
+        alertDialog.setNegativeButton(
+            "No"
+        ) { _: DialogInterface?, _: Int ->
+            // When the user click yes button then app will close
+
+        }
+        alertDialog.create()
+        alertDialog.show()
     }
 }

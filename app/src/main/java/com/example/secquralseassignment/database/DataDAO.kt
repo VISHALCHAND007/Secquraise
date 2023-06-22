@@ -12,9 +12,9 @@ interface DataDAO {
     @Insert (onConflict = OnConflictStrategy.REPLACE)
     fun insert(dataEntity: DataEntity)
 
-    @Delete
-    fun delete(dataEntity: DataEntity)
+    @Query ("Delete From data_table where photo = :photo")
+    fun delete(photo: String)
 
     @Query("Select * from data_table")
-    fun getAllData(): LiveData<List<DataEntity>>
+    fun getAllData(): List<DataEntity>
 }
