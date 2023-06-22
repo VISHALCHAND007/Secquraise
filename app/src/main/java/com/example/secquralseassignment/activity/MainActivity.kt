@@ -1,12 +1,16 @@
 package com.example.secquralseassignment.activity
 
 import android.annotation.SuppressLint
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
 import android.os.Environment
 import android.os.Handler
 import android.os.Looper
+import android.text.Editable
+import android.text.TextWatcher
+import android.util.Log
 import android.view.View
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
@@ -16,6 +20,7 @@ import androidx.core.content.FileProvider
 import com.bumptech.glide.Glide
 import com.example.secquralseassignment.R
 import com.example.secquralseassignment.databinding.ActivityMainBinding
+import com.example.secquralseassignment.model.DataModel
 import com.example.secquralseassignment.utils.CheckBattery
 import com.example.secquralseassignment.utils.CheckConnection
 import com.example.secquralseassignment.utils.LocationHelper
@@ -27,6 +32,9 @@ import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.storage.FirebaseStorage
 import com.google.firebase.storage.StorageReference
 import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Date
 
 
 class MainActivity : AppCompatActivity() {
@@ -37,6 +45,20 @@ class MainActivity : AppCompatActivity() {
     private lateinit var mFirebaseDatabaseReference: DatabaseReference
     private lateinit var mFirebaseStorageReference: StorageReference
     private lateinit var mChildEventListener: ChildEventListener
+    private lateinit var photoUri: Uri
+    private lateinit var mCalendar: Calendar
+    private lateinit var file: File
+    private var isPermissionGranted = false
+
+    //local variables
+    private var mTimestamp: String = ""
+    private var mFrequency: Int = 15
+    private var mConnectivity: Boolean = false
+    private var mBatteryCharging: Boolean = false
+    private var mChargePercentage: Int = 0
+    private var mLocationCoordinates: String = ""
+    private var mCaptureCount: Int = 0
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -59,6 +81,7 @@ class MainActivity : AppCompatActivity() {
         mFirebaseStorage = FirebaseStorage.getInstance()
         mFirebaseDatabaseReference = mFirebaseDatabase.reference.child("my_database")
         mFirebaseStorageReference = mFirebaseStorage.reference.child("photos")
+        mCalendar = Calendar.getInstance()
     }
 
     private fun checkPermission() {
@@ -67,36 +90,14 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    @SuppressLint("SetTextI18n")
     private fun initTasks() {
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
         binding.scrollView.isHorizontalScrollBarEnabled = false
-
-        //setting the default init values
-        binding.frequencyEt.setText("15")
-        binding.captureTv.text = "0"
     }
 
     private fun initListeners() {
         binding.manualRefreshBtn.setOnClickListener {
-
-            //upload and get the url of the image from storage
-            val url: Uri =
-                Uri.parse("https://imgv3.fotor.com/images/blog-richtext-image/take-a-picture-with-camera.png"); //suppose this is image url
-            mFirebaseStorageReference.child(url.lastPathSegment!!).putFile(url)
-                .addOnSuccessListener {
-                    val imageUrl = it.uploadSessionUri
-//                val dataModel = DataModel(1, 15, true, false, 54, "flkajdflkje;lj kdjfldkjflk")
-//                mFirebaseDatabaseReference.push().setValue(dataModel)
-                }
-
-            binding.progressBar.visibility = View.VISIBLE
-            binding.scrollView.visibility = View.GONE
-            Handler(Looper.myLooper()!!).postDelayed({
-                fetchAllData()
-                binding.scrollView.visibility = View.VISIBLE
-                binding.progressBar.visibility = View.GONE
-            }, 200)
+            saveFetchedData(0)
         }
         mChildEventListener = object : ChildEventListener {
             override fun onChildAdded(snapshot: DataSnapshot, previousChildName: String?) {
@@ -104,81 +105,189 @@ class MainActivity : AppCompatActivity() {
             }
 
             override fun onChildChanged(snapshot: DataSnapshot, previousChildName: String?) {
-
             }
 
             override fun onChildRemoved(snapshot: DataSnapshot) {
-
             }
 
             override fun onChildMoved(snapshot: DataSnapshot, previousChildName: String?) {
-
             }
 
             override fun onCancelled(error: DatabaseError) {
-
             }
         }
         mFirebaseDatabaseReference.addChildEventListener(mChildEventListener)
+
+        binding.frequencyEt.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {
+
+            }
+
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+
+            }
+
+            override fun afterTextChanged(s: Editable?) {
+                saveFetchedData(s.toString().toInt())
+            }
+        })
     }
 
     private fun fetchAllData() {
-        getPhoto()
+        takePermission()
+        saveTimeStamp()
         getConnectivity()
         getChargingStatus()
         getBatteryChargePercentage()
         getUserLocation()
+        updateData()
+        saveFetchedData(mFrequency)
+    }
+
+    @SuppressLint("SetTextI18n")
+    private fun updateData() {
+        //setting value
+        binding.frequencyEt.setText("15")
+        binding.captureTv.text = mCaptureCount.toString()
+
+        if (::photoUri.isInitialized) {
+            Glide.with(this@MainActivity).load(photoUri).into(binding.imageView)
+        }
+    }
+
+    @SuppressLint("SimpleDateFormat")
+    private fun saveFetchedData(frequency: Int) {
+        val time: Long = (frequency * 60 * 1000).toLong()
+
+        Handler(Looper.myLooper()!!).postDelayed({
+            val fileName = SimpleDateFormat("yyyyMMdd_HHmmss").format(mCalendar.time) + ".jpg"
+            //start loading
+            binding.progressBar.visibility = View.VISIBLE
+            binding.scrollView.visibility = View.GONE
+            mFirebaseStorageReference.child(fileName).putFile(photoUri)
+                .addOnSuccessListener {
+                    val imageUrl = it.uploadSessionUri
+                    val dataModel =
+                        DataModel(
+                            imageUrl.toString(),
+                            mTimestamp,
+                            mCaptureCount,
+                            mFrequency,
+                            mConnectivity,
+                            mBatteryCharging,
+                            mChargePercentage,
+                            mLocationCoordinates
+                        )
+                    try {
+                        mFirebaseDatabaseReference.push().setValue(dataModel)
+                    } catch (e: Exception) {
+                        Log.e("saveFetchedData", "Error uploading data: ${e.message}")
+                    }
+                    binding.progressBar.visibility = View.GONE
+                    binding.scrollView.visibility = View.VISIBLE
+                    deleteAndFetchAgain()
+                }
+                .addOnFailureListener { e ->
+                    Log.e("saveFetchedData", "Error uploading photo: ${e.message}")
+                }
+        }, time)
+    }
+
+    private fun deleteAndFetchAgain() {
+        if (file.exists()) {
+            file.delete()
+        }
+        binding.imageView.setImageDrawable(null)
+        binding.imageView.invalidate()
+        fetchAllData()
     }
 
     private fun getPhoto() {
-        takePermission()
+        mCaptureCount++
         val storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES)
-        val file = File(storageDir, "photo.jpg")
-        val photoUri = FileProvider.getUriForFile(this, "com.example.secquralseassignment.fileprovider", file)
-
-        val launcher = registerForActivityResult(ActivityResultContracts.TakePicture()) {
-            if (it) {
-                Glide.with(this@MainActivity).load(photoUri).into(binding.imageView)
-            }
-        }
-
+        file = File(storageDir, "${mCalendar.time}.jpg")
+        photoUri =
+            FileProvider.getUriForFile(this, "com.example.secquralseassignment.fileprovider", file)
+        applicationContext.grantUriPermission(
+            "com.example.secquralseassignment",
+            photoUri,
+            Intent.FLAG_GRANT_WRITE_URI_PERMISSION or Intent.FLAG_GRANT_READ_URI_PERMISSION
+        )
         launcher.launch(photoUri)
+    }
+
+    private val launcher = registerForActivityResult(ActivityResultContracts.TakePicture()) {
+        if (it) {
+            Glide.with(this@MainActivity).load(photoUri).into(binding.imageView)
+        }
+    }
+
+    private fun saveTimeStamp() {
+        mTimestamp = formatDate(Calendar.getInstance().time)
+        binding.dateTimeTv.text = mTimestamp
+    }
+
+    @SuppressLint("SimpleDateFormat")
+    private fun formatDate(time: Date): String {
+        val simpleDateFormat = SimpleDateFormat("dd-MM-yyyy HH:mm:ss")
+        return simpleDateFormat.format(time)
     }
 
     private fun takePermission() {
         if (ActivityCompat.checkSelfPermission(
                 this@MainActivity,
                 android.Manifest.permission.CAMERA
-            ) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this@MainActivity, android.Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED
-        )
-            ActivityCompat.requestPermissions(
+            ) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
                 this@MainActivity,
-                arrayOf(android.Manifest.permission.CAMERA, android.Manifest.permission.WRITE_EXTERNAL_STORAGE),
-                REQUEST_PHOTO
-            )
+                android.Manifest.permission.WRITE_EXTERNAL_STORAGE
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            permissionLauncher.launch(android.Manifest.permission.CAMERA)
+        } else {
+            isPermissionGranted = true
+            getPhoto()
+        }
     }
+
+    private val permissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) {
+            if (it) {
+                getPhoto()
+            } else {
+                takePermission()
+            }
+        }
 
 
     private fun getConnectivity() {
-        if (CheckConnection().checkConnectivity(this@MainActivity))
+        if (CheckConnection().checkConnectivity(this@MainActivity)) {
+            mConnectivity = true
             binding.connectivityTv.text = getString(R.string.on)
-        else
+        } else {
             binding.connectivityTv.text = getString(R.string.off)
+            mConnectivity = false
+        }
     }
 
     private fun getChargingStatus() {
         // 2 = Charging
         // 3 = Discharging
-        if (CheckBattery().checkCharging(this@MainActivity) == 2)
+        if (CheckBattery().checkCharging(this@MainActivity) == 2) {
+            mBatteryCharging = true
             binding.batteryChargingTv.text = getString(R.string.on)
-        else
+        } else {
             binding.batteryChargingTv.text = getString(R.string.off)
+            mBatteryCharging = false
+        }
     }
 
     @SuppressLint("SetTextI18n")
     private fun getBatteryChargePercentage() {
         val batteryPercentage = CheckBattery().getChargingPercentage(this@MainActivity)
-        binding.chargePercentageTv.text = "$batteryPercentage%"
+        if (batteryPercentage != null) {
+            mChargePercentage = batteryPercentage
+            binding.chargePercentageTv.text = "$batteryPercentage%"
+        }
     }
 
     private fun getUserLocation() {
@@ -186,6 +295,7 @@ class MainActivity : AppCompatActivity() {
             this@MainActivity,
             object : LocationHelper.LocationCallback {
                 override fun onLocationReceived(location: String) {
+                    mLocationCoordinates = location
                     binding.locationTv.text = location
                 }
 
@@ -212,12 +322,4 @@ class MainActivity : AppCompatActivity() {
             }
         }
     }
-    companion object{
-        const val REQUEST_PHOTO = 10
-    }
-
-//    override fun onDestroy() {
-//        super.onDestroy()
-////        locationHelper.removeLocation()
-//    }
 }

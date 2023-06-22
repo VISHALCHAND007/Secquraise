@@ -27,10 +27,10 @@ class LocationHelper {
                 fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(mContext)
                 fusedLocationProviderClient.lastLocation.addOnCompleteListener {
                     val result = it.result
-                    if (result != null) {
+                    try {
                         location = "${result.longitude}\n${result.latitude}"
                         callback.onLocationReceived(location)
-                    } else {
+                    }catch (e:Exception) {
                         showToast("Some error occurred.", mContext)
                     }
                 }
@@ -53,6 +53,10 @@ class LocationHelper {
             ActivityCompat.checkSelfPermission(
                 mContext,
                 android.Manifest.permission.ACCESS_COARSE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED &&
+            ActivityCompat.checkSelfPermission(
+                mContext,
+                android.Manifest.permission.CAMERA
             ) == PackageManager.PERMISSION_GRANTED
         ) {
             return true
@@ -63,7 +67,7 @@ class LocationHelper {
     fun requestPermission(mContext: Context) {
         ActivityCompat.requestPermissions(
             mContext as Activity,
-            arrayOf(android.Manifest.permission.ACCESS_COARSE_LOCATION, android.Manifest.permission.ACCESS_FINE_LOCATION),
+            arrayOf(android.Manifest.permission.ACCESS_COARSE_LOCATION, android.Manifest.permission.ACCESS_FINE_LOCATION, android.Manifest.permission.CAMERA),
             PERMISSION_REQUEST_ACCESS_LOCATION
         )
     }

@@ -3,7 +3,7 @@ package com.example.secquralseassignment.model
 import android.net.Uri
 
 data class DataModel(
-    val mPhoto: Uri,
+    val mPhoto: String?,
     val mTimeStamp: String,
     val mCaptureCount: Int,
     val mFrequency: Int,
