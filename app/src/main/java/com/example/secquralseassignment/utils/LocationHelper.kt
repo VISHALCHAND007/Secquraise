@@ -27,7 +27,7 @@ class LocationHelper {
                 fusedLocationProviderClient.lastLocation.addOnCompleteListener {
                     val result = it.result
                     try {
-                        location = "${result.longitude}\n${result.latitude}"
+                        location = "${result.longitude},\n${result.latitude}"
                         callback.onLocationReceived(location)
                     }catch (e:Exception) {
                         showToast("Some error occurred.", mContext)

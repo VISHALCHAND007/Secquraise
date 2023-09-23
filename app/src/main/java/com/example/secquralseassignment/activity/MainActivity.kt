@@ -1,25 +1,25 @@
 package com.example.secquralseassignment.activity
 
 import android.annotation.SuppressLint
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
+import android.content.Context
 import android.content.DialogInterface
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.net.Uri
 import android.os.Bundle
-import android.os.Environment
 import android.os.Handler
 import android.os.Looper
-import android.provider.Settings
 import android.text.Editable
 import android.text.TextWatcher
 import android.util.Log
 import android.view.View
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
-import androidx.core.app.ActivityCompat
-import androidx.core.content.FileProvider
+import androidx.core.app.NotificationCompat
+import androidx.lifecycle.lifecycleScope
 import com.example.secquralseassignment.R
 import com.example.secquralseassignment.database.DataDAO
 import com.example.secquralseassignment.database.DataEntity
@@ -34,9 +34,8 @@ import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
-import com.google.firebase.storage.FirebaseStorage
-import com.google.firebase.storage.StorageReference
-import java.io.File
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -46,15 +45,12 @@ class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private lateinit var locationHelper: LocationHelper
     private lateinit var mFirebaseDatabase: FirebaseDatabase
-    private lateinit var mFirebaseStorage: FirebaseStorage
     private lateinit var mFirebaseDatabaseReference: DatabaseReference
-    private lateinit var mFirebaseStorageReference: StorageReference
     private lateinit var mChildEventListener: ChildEventListener
-    private lateinit var photoUri: Uri
     private lateinit var mCalendar: Calendar
-    private lateinit var file: File
     private lateinit var dataModel: DataModel
     private lateinit var dao: DataDAO
+    private var toastCounter = 1
 
     //local variables
     private var mTimestamp: String = ""
@@ -64,6 +60,8 @@ class MainActivity : AppCompatActivity() {
     private var mChargePercentage: Int = 0
     private var mLocationCoordinates: String = ""
     private var mCaptureCount: Int = 0
+    private val CHANNEL_ID = "12"
+    private val NOTIFICATION_ID = 1
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -84,18 +82,23 @@ class MainActivity : AppCompatActivity() {
     private fun saveOfflineData() {
         val mList = dao.getAllData()
         if (CheckConnection().checkConnectivity(this@MainActivity) && mList.isNotEmpty()) {
+            binding.progressBar.visibility = View.VISIBLE
             locationHelper.showToast("Sync in progress...", this@MainActivity)
-            for (i in mList.indices) {
-                photoUri = Uri.parse(mList[i].mPhoto)
-                Log.e("here==", photoUri.toString())
-                mTimestamp = mList[i].mTimeStamp
-                mCaptureCount = mList[i].mCaptureCount
-                mFrequency = mList[i].mFrequency
-                mConnectivity = mList[i].mConnectivity
-                mBatteryCharging = mList[i].mBatteryCharging
-                mChargePercentage = mList[i].mChargePercentage
-                mLocationCoordinates = mList[i].mLocationCoordinates
-                saveOnline(0)
+            lifecycleScope.launch {
+                mList.forEach { data ->
+                    val job = lifecycleScope.launch(Dispatchers.IO) {
+                        mTimestamp = data.mTimeStamp
+                        mCaptureCount = data.mCaptureCount
+                        mFrequency = data.mFrequency
+                        mConnectivity = data.mConnectivity
+                        mBatteryCharging = data.mBatteryCharging
+                        mChargePercentage = data.mChargePercentage
+                        mLocationCoordinates = data.mLocationCoordinates
+                    }
+                    job.join()
+                    saveOnline(0)
+                }
+                fetchAllData()
             }
         } else {
             fetchAllData()
@@ -105,9 +108,7 @@ class MainActivity : AppCompatActivity() {
     private fun initElements() {
         locationHelper = LocationHelper()
         mFirebaseDatabase = FirebaseDatabase.getInstance()
-        mFirebaseStorage = FirebaseStorage.getInstance()
         mFirebaseDatabaseReference = mFirebaseDatabase.reference.child("my_database")
-        mFirebaseStorageReference = mFirebaseStorage.reference.child("photos")
         mCalendar = Calendar.getInstance()
         dao = Database.getDatabaseInstance(this@MainActivity).dataDao()
     }
@@ -120,7 +121,6 @@ class MainActivity : AppCompatActivity() {
 
     private fun initTasks() {
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
-        binding.scrollView.isHorizontalScrollBarEnabled = false
     }
 
     private fun initListeners() {
@@ -130,7 +130,10 @@ class MainActivity : AppCompatActivity() {
         }
         mChildEventListener = object : ChildEventListener {
             override fun onChildAdded(snapshot: DataSnapshot, previousChildName: String?) {
-                locationHelper.showToast("Data added to database.", this@MainActivity)
+                if (dao.getAllData().isEmpty() && toastCounter == 1) {
+                    toastCounter++
+                    locationHelper.showToast("Data added to database.", this@MainActivity)
+                }
             }
 
             override fun onChildChanged(snapshot: DataSnapshot, previousChildName: String?) {
@@ -148,7 +151,12 @@ class MainActivity : AppCompatActivity() {
         mFirebaseDatabaseReference.addChildEventListener(mChildEventListener)
 
         binding.frequencyEt.addTextChangedListener(object : TextWatcher {
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {
+            override fun beforeTextChanged(
+                s: CharSequence?,
+                start: Int,
+                count: Int,
+                after: Int
+            ) {
 
             }
 
@@ -164,7 +172,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun fetchAllData() {
-        takePermission()
         saveTimeStamp()
         getChargingStatus()
         getConnectivity()
@@ -196,7 +203,6 @@ class MainActivity : AppCompatActivity() {
             */
             Handler(Looper.myLooper()!!).postDelayed({
                 val entity = DataEntity(
-                    photoUri.toString(),
                     mTimestamp,
                     mCaptureCount,
                     mFrequency,
@@ -213,57 +219,30 @@ class MainActivity : AppCompatActivity() {
 
     @SuppressLint("SimpleDateFormat")
     private fun saveOnline(time: Long) {
+        dataModel =
+            DataModel(
+                mTimestamp,
+                mCaptureCount,
+                mFrequency,
+                mConnectivity,
+                mBatteryCharging,
+                mChargePercentage,
+                mLocationCoordinates
+            )
+
         Handler(Looper.myLooper()!!).postDelayed({
-            val fileName = SimpleDateFormat("yyyyMMdd_HHmmss").format(mCalendar.time) + ".png"
             //start loading
             binding.progressBar.visibility = View.VISIBLE
-            binding.scrollView.visibility = View.GONE
-            mFirebaseStorageReference.child(fileName).putFile(photoUri)
-                .addOnSuccessListener {
-                    val imageUrl = it.uploadSessionUri
-                    dataModel =
-                        DataModel(
-                            imageUrl.toString(),
-                            mTimestamp,
-                            mCaptureCount,
-                            mFrequency,
-                            mConnectivity,
-                            mBatteryCharging,
-                            mChargePercentage,
-                            mLocationCoordinates
-                        )
-                    try {
-                        mFirebaseDatabaseReference.push().setValue(dataModel)
-                    } catch (e: Exception) {
-                        Log.e("saveFetchedData", "Error uploading data: ${e.message}")
-                    }
-                    binding.progressBar.visibility = View.GONE
-                    binding.scrollView.visibility = View.VISIBLE
-                    //delete data from room and remove the file from android storage
-                    dao.delete(photoUri.toString())
-                    fetchAllData()
-                }
-                .addOnFailureListener { e ->
-                    Log.e("saveFetchedData", "Error uploading photo: ${e.message}")
-                }
+            try {
+                mFirebaseDatabaseReference.push().setValue(dataModel)
+                //delete data from room and remove the file from android storage
+                dao.delete(dataModel.mTimeStamp)
+            } catch (e: Exception) {
+                Log.e("saveFetchedData", "Error uploading data: ${e.message}")
+            }
+            binding.progressBar.visibility = View.GONE
+            fetchAllData()
         }, time)
-    }
-
-    private fun getPhoto() {
-//        mCaptureCount++
-        val storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES)
-        val mFile = File(storageDir, "photo.${mCalendar.time.time}.png")
-        file = mFile
-        photoUri =
-            FileProvider.getUriForFile(this, "com.example.secquralseassignment.fileprovider", mFile)
-        launcher.launch(photoUri)
-    }
-
-    private val launcher = registerForActivityResult(ActivityResultContracts.TakePicture()) {
-        if (it) {
-            binding.imageView.setImageURI(null)
-            binding.imageView.setImageURI(photoUri)
-        }
     }
 
     private fun saveTimeStamp() {
@@ -276,32 +255,6 @@ class MainActivity : AppCompatActivity() {
         val simpleDateFormat = SimpleDateFormat("dd-MM-yyyy HH:mm:ss")
         return simpleDateFormat.format(time)
     }
-
-    private fun takePermission() {
-        if (ActivityCompat.checkSelfPermission(
-                this@MainActivity,
-                android.Manifest.permission.CAMERA
-            ) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
-                this@MainActivity,
-                android.Manifest.permission.WRITE_EXTERNAL_STORAGE
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            permissionLauncher.launch(android.Manifest.permission.CAMERA)
-        } else {
-            getPhoto()
-        }
-    }
-
-    private val permissionLauncher =
-        registerForActivityResult(ActivityResultContracts.RequestPermission()) {
-            if (it) {
-                getPhoto()
-            } else {
-                LocationHelper().showToast("Allow Camera Access", this@MainActivity)
-                val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
-                startActivity(intent)
-            }
-        }
 
 
     private fun getConnectivity() {
@@ -332,7 +285,44 @@ class MainActivity : AppCompatActivity() {
         if (batteryPercentage != null) {
             mChargePercentage = batteryPercentage
             binding.chargePercentageTv.text = "$batteryPercentage%"
+            if (batteryPercentage < 20)
+                sendLowBatteryNotification()
         }
+    }
+
+    private fun sendLowBatteryNotification() {
+        //create notification manager
+        val notification = NotificationCompat.Builder(this@MainActivity)
+        notification.setSmallIcon(android.R.drawable.sym_def_app_icon)
+        notification.setContentTitle(getString(R.string.app_name))
+        notification.setContentText(getString(R.string.batter_less_than_20))
+        notification.setAutoCancel(true)
+
+        //set pending intent
+        val touchIntent = Intent(this, MainActivity::class.java)
+        val pendingIntent = PendingIntent.getActivity(
+            this@MainActivity,
+            0,
+            touchIntent,
+            PendingIntent.FLAG_IMMUTABLE
+        )
+        notification.setContentIntent(pendingIntent)
+
+        //notification manager
+        val notificationManager =
+            getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+        //creating channel
+        val channel = NotificationChannel(
+            CHANNEL_ID,
+            "My notification",
+            NotificationManager.IMPORTANCE_DEFAULT
+        )
+        notificationManager.createNotificationChannel(channel)
+        notification.setChannelId(CHANNEL_ID)
+
+        //connect with notification manager
+        notificationManager.notify(NOTIFICATION_ID, notification.build())
     }
 
     private fun getUserLocation() {

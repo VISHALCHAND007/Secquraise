@@ -7,8 +7,6 @@ import java.io.File
 
 @Entity (tableName = "data_table")
 class DataEntity(
-    @ColumnInfo (name = "photo")
-    val mPhoto: String,
     @ColumnInfo (name = "timestamp")
     val mTimeStamp: String,
     @ColumnInfo (name = "capture_count")

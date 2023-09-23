@@ -4,6 +4,9 @@
     <item name="title1" type="dimen">24sp</item>
     <item name="title2" type="dimen">20sp</item>
     <item name="margin10" type="dimen">10dp</item>
+    <item name="margin15" type="dimen">15dp</item>
+    <item name="margin20" type="dimen">20dp</item>
+    <item name="margin80" type="dimen">80dp</item>
     <item name="font1" type="dimen">18sp</item>
     <item name="font2" type="dimen">16sp</item>
 

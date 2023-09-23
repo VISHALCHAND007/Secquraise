@@ -8,19 +8,9 @@
     android:padding="10dp"
     tools:context=".activity.MainActivity">
 
-    <ScrollView
-        android:id="@+id/scrollView"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.5"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent">
-
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="match_parent"
             android:orientation="vertical">
 
             <TextView
@@ -42,15 +32,6 @@
                 android:textColor="@color/white"
                 android:textSize="@dimen/title2" />
 
-            <ImageView
-                android:id="@+id/imageView"
-                android:layout_width="200dp"
-                android:layout_height="180dp"
-                android:layout_gravity="center_horizontal"
-                android:layout_marginTop="@dimen/margin10"
-                android:contentDescription="@null"
-                android:src="@drawable/image" />
-
             <TableLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -59,12 +40,13 @@
                 <TableRow
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/margin80"
+                    android:layout_marginBottom="@dimen/margin20"
                     android:weightSum="1">
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="@dimen/margin10"
                         android:layout_weight=".9"
                         android:gravity="start"
                         android:text="@string/capture_count"
@@ -75,7 +57,6 @@
                         android:id="@+id/captureTv"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="@dimen/margin10"
                         android:layout_weight=".1"
                         android:textColor="@color/green"
                         android:textSize="@dimen/title2" />
@@ -85,6 +66,7 @@
                 <TableRow
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:layout_marginBottom="@dimen/margin20"
                     android:weightSum="1">
 
                     <TextView
@@ -115,6 +97,7 @@
                 <TableRow
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:layout_marginBottom="@dimen/margin20"
                     android:weightSum="1">
 
                     <TextView
@@ -141,6 +124,7 @@
                 <TableRow
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:layout_marginBottom="@dimen/margin20"
                     android:weightSum="1">
 
                     <TextView
@@ -167,6 +151,7 @@
                 <TableRow
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:layout_marginBottom="@dimen/margin20"
                     android:weightSum="1">
 
                     <TextView
@@ -193,6 +178,7 @@
                 <TableRow
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:layout_marginBottom="@dimen/margin20"
                     android:weightSum="1">
 
                     <TextView
@@ -223,9 +209,9 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginHorizontal="@dimen/margin10"
-                android:layout_marginTop="@dimen/margin10"
+                android:layout_marginTop="@dimen/margin80"
                 android:backgroundTint="@color/colorAccent"
-                android:paddingVertical="@dimen/margin10"
+                android:paddingVertical="@dimen/margin15"
                 android:text="@string/manual_data_refresh"
                 android:textColor="@color/white"
                 android:textSize="@dimen/title2"
@@ -233,14 +219,13 @@
 
 
         </LinearLayout>
-    </ScrollView>
 
     <ProgressBar
         android:id="@+id/progressBar"
         android:layout_width="50dp"
         android:layout_height="50dp"
         android:visibility="gone"
-        android:indeterminateTint="@color/colorAccent"
+        android:indeterminateTint="@color/white"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
