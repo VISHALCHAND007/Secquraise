@@ -35,6 +35,7 @@ import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -85,24 +86,29 @@ class MainActivity : AppCompatActivity() {
             binding.progressBar.visibility = View.VISIBLE
             locationHelper.showToast("Sync in progress...", this@MainActivity)
             lifecycleScope.launch {
-                mList.forEach { data ->
-                    val job = lifecycleScope.launch(Dispatchers.IO) {
-                        mTimestamp = data.mTimeStamp
-                        mCaptureCount = data.mCaptureCount
-                        mFrequency = data.mFrequency
-                        mConnectivity = data.mConnectivity
-                        mBatteryCharging = data.mBatteryCharging
-                        mChargePercentage = data.mChargePercentage
-                        mLocationCoordinates = data.mLocationCoordinates
-                    }
-                    job.join()
-                    saveOnline(0)
-                }
-                fetchAllData()
+                syncData(mList)
             }
         } else {
             fetchAllData()
         }
+    }
+
+    private suspend fun syncData(mList: List<DataEntity>) {
+        mList.forEach { data ->
+            val job = lifecycleScope.launch(Dispatchers.IO) {
+                mTimestamp = data.mTimeStamp
+                mCaptureCount = data.mCaptureCount
+                mFrequency = data.mFrequency
+                mConnectivity = data.mConnectivity
+                mBatteryCharging = data.mBatteryCharging
+                mChargePercentage = data.mChargePercentage
+                mLocationCoordinates = data.mLocationCoordinates
+            }
+            job.join()
+            saveOnline(0)
+            delay(10)
+        }
+        fetchAllData()
     }
 
     private fun initElements() {
