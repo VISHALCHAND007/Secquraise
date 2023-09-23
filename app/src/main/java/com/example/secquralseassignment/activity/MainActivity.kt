@@ -136,7 +136,7 @@ class MainActivity : AppCompatActivity() {
         }
         mChildEventListener = object : ChildEventListener {
             override fun onChildAdded(snapshot: DataSnapshot, previousChildName: String?) {
-                if (dao.getAllData().isEmpty() && toastCounter == 1) {
+                if (CheckConnection().checkConnectivity(this@MainActivity) && toastCounter == 1) {
                     toastCounter++
                     locationHelper.showToast("Data added to database.", this@MainActivity)
                 }
