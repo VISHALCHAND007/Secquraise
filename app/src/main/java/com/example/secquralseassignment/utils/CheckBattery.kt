@@ -4,7 +4,6 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.os.BatteryManager
-import android.util.Log
 
 class CheckBattery {
     fun checkCharging(mContext: Context): Int? {

@@ -121,11 +121,11 @@ class MainActivity : AppCompatActivity() {
     private fun initTasks() {
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
         binding.scrollView.isHorizontalScrollBarEnabled = false
-
     }
 
     private fun initListeners() {
         binding.manualRefreshBtn.setOnClickListener {
+            //to save the data at that instant
             saveFetchedData(0)
         }
         mChildEventListener = object : ChildEventListener {
@@ -180,7 +180,6 @@ class MainActivity : AppCompatActivity() {
         //setting value
         binding.frequencyEt.setText("15")
         binding.captureTv.text = mCaptureCount.toString()
-
     }
 
     private fun saveFetchedData(frequency: Int) {
@@ -215,7 +214,7 @@ class MainActivity : AppCompatActivity() {
     @SuppressLint("SimpleDateFormat")
     private fun saveOnline(time: Long) {
         Handler(Looper.myLooper()!!).postDelayed({
-            val fileName = SimpleDateFormat("yyyyMMdd_HHmmss").format(mCalendar.time) + ".jpg"
+            val fileName = SimpleDateFormat("yyyyMMdd_HHmmss").format(mCalendar.time) + ".png"
             //start loading
             binding.progressBar.visibility = View.VISIBLE
             binding.scrollView.visibility = View.GONE
